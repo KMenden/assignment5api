@@ -1,40 +1,69 @@
 import React, { Component } from 'react';
-import PropTypes from "prop-types";
+import { fetchMovies } from '../actions/movieActions';
+import { setMovie } from '../actions/movieActions';
+import {connect} from "react-redux";
+import { Image } from 'react-bootstrap'
+import { Carousel } from 'react-bootstrap'
+import { Glyphicon } from 'react-bootstrap'
+import {LinkContainer} from 'react-router-bootstrap';
 
 //require a callback function to be sent to MovieList to update the header subtitle
 
 class MovieList extends Component {
-    state = {selectedOption: 'Guardians of the Galaxy Vol. 2'};
     constructor(props) {
         super(props);
-        if(this.props.onTitleChange)
-            this.props.onTitleChange("Gaurdians of the Galaxy Vol. 2");
+        this.handleSelect = this.handleSelect.bind(this);
     }
-    handleOnChange = (e) => {
-        this.setState({
-            selectedOption: e.target.value
-        });
-        if(this.props.onTitleChange)
-            this.props.onTitleChange(e.target.value);
+
+    componentDidMount() {
+        const {dispatch} = this.props;
+        dispatch(fetchMovies());
+    }
+
+    handleSelect(selectedIndex, e) {
+        const {dispatch} = this.props;
+        dispatch(setMovie(this.props.movies[selectedIndex]));
+    }
+
+    handleClick = (movie) => {
+        const {dispatch} = this.props;
+        dispatch(setMovie(movie));
     }
 
     render() {
+
+        const MovieListCarousel= ({movieList}) => {
+            if (!movieList) { // evaluates to true if currentMovie is null
+                return <div>Loading...</div>;
+            }
+
+            return (
+                <Carousel onSelect={this.handleSelect}>
+                    {movieList.map((movie) =>
+                    <Carousel.Item key={movie._id}>
+                        <div>
+                            <LinkContainer to={'/movie/'+movie._id} onClick={()=>this.handleClick(movie)}>
+                                <Image className="image" src={movie.imageUrl} thumbnail />
+                            </LinkContainer>
+                        </div>
+                        <Carousel.Caption>
+                            <h3>{movie.title}</h3>
+                            <Glyphicon glyph={'star'} /> {movie.avgRating} &nbsp;&nbsp; {movie.releaseDate}
+                        </Carousel.Caption>
+                    </Carousel.Item>)}
+            </Carousel>);
+        }
+
         return (
-            <div>
-                <div className="row movietitle">
-                    <input type="radio" value="Guardians of the Galaxy Vol. 2" checked={this.state.selectedOption === 'Guardians of the Galaxy Vol. 2'} onChange={ (e) => this.handleOnChange(e) } />
-                    Guardians of the Galaxy Vol. 2
-                </div>
-                <div className="row movietitle">
-                    <input type="radio" value="La La Land" checked={this.state.selectedOption === 'La La Land'} onChange={ (e) => this.handleOnChange(e) } />
-                    La La Land
-                </div>
-            </div>
+            <MovieListCarousel movieList={this.props.movies} />
         );
     }
 }
 
-MovieList.propTypes = {
-    onTitleChange: PropTypes.func.isRequired
-};
-export default MovieList;
+const mapStateToProps = state => {
+    return {
+        movies: state.movie.movies
+    }
+}
+
+export default connect(mapStateToProps)(MovieList);
